@@ -8,6 +8,7 @@ from datetime import datetime
 from datetime import timedelta
 from selenium import webdriver  # need to be installed
 from pushover import Client     # need to be installed
+import re    
 
 # Send notification to phone using pushover
 # This is my personal TOKEN and API, please do not use them for testing
@@ -23,20 +24,6 @@ else:
 driver.set_window_position(0, 0)
 driver.set_window_size(800, 900)
 
-#queue_found = 0
-#while True:
-#  driver.get(r"C:\Users\rellik\Desktop\Tesco Groceries.html")
-#    
-#  try:
-#    slot_message = driver.find_elements_by_xpath("//*[contains(text(), 'in a queue to shop with us')]")
-#    queue_found = 1
-#  except:
-#    queue_found = 0
-#
-#  if queue_found == 1:
-#    print ("queue found")
-#  time.sleep(100000)
-  
 # Load url
 driver.get("https://secure.tesco.com/account/en-GB/login")
 current_url = driver.current_url
@@ -47,9 +34,9 @@ while current_url != "https://www.tesco.com/groceries/en-GB/slots/delivery":
     time.sleep(2)
 
 # Loop forever
-loop_cnt = 1
+loop_cnt = 0
 while True:
-
+  loop_cnt = loop_cnt + 1
   print ("\nStarting " + str(loop_cnt) + "th Tesco slot searches.")
   out = 0
 
@@ -71,22 +58,22 @@ while True:
       break
 
     # Sleep
-    time.sleep(0.5)
-
+    time.sleep(0.6)
+  
+  
   # Found slots or get into a queue
   if out == 1:
     # Test if it is a queue page
-    not_in_queue = 0
-    try:
-      slot_message = driver.find_elements_by_xpath("//*[contains(text(), 'in a queue to shop with us')]")
-    except:
-      not_in_queue = 1
-    
-    if not_in_queue == 0:
+    src = driver.page_source
+    if re.search(r'in a queue to shop with us', src):
+      # We are in the queue
       client.send_message("Please mannualy refresh the queue page.", title="We are in a Tesco online queue!")
       time.sleep(1800)
     else:
+      # We found a slot 
+      # TODO: this also includes timeout page - exclude this case
       client.send_message("Check " + date + " slots in broswer, will resume searching in 10 min.", title="Available Tesco Slot Found!")
       print("Slots found in " + date + ".")
       time.sleep(600)
 
+    
